@@ -1,0 +1,66 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volSymmTensorField;
+    object      A2;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform (0.33333333333 0 0 0.33333333333 0 0.33333333333);
+
+boundaryField
+{
+   "(walls.*)"
+   {
+        type            codedMixed;
+
+        refValue        uniform (0 0 0 0 0 0);
+        refGradient     uniform (0 0 0 0 0 0);
+        valueFraction   uniform 0;
+
+        redirectType    A2BC;
+
+        code
+        #{
+		//const fvPatchField<scalar>& alpha1 =
+		//	patch().lookupPatchField<volScalarField, scalar>("alpha.phase1");
+		const fvPatchField<scalar>& injectionPointMask =
+			patch().lookupPatchField<volScalarField, scalar>("injectionPointMask");
+		const fvPatchField<symmTensor>& injectionA2 =
+			patch().lookupPatchField<volSymmTensorField, symmTensor>("injectionA2");
+
+		this->refValue() = injectionA2;
+		this->refGrad() = pTraits<symmTensor>::zero;
+		this->valueFraction() = injectionPointMask;
+
+		Info << "Updating A2 BC" << endl;
+        #};
+
+        //codeInclude
+        //#{
+        //    #include "fvCFD.H"
+        //#};
+
+        //codeOptions
+        //#{
+        //    -I$(LIB_SRC)/finiteVolume/lnInclude
+        //#};
+    }
+
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

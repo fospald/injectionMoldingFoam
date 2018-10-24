@@ -1,0 +1,4 @@
+injectionMoldingFoam.C
+eig3.C
+
+EXE = $(FOAM_USER_APPBIN)/injectionMoldingFoam

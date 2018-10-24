@@ -1,0 +1,162 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    pcorr
+    {
+        solver          PCG;
+        preconditioner
+        {
+            preconditioner  GAMG;
+            tolerance       1e-05;
+            relTol          0;
+            smoother        DICGaussSeidel;
+            nPreSweeps      0;
+            nPostSweeps     2;
+            nFinestSweeps   2;
+            cacheAgglomeration false;
+            nCellsInCoarsestLevel 10;
+            agglomerator    faceAreaPair;
+            mergeLevels     1;
+        }
+        tolerance       1e-05;
+        relTol          0;
+        maxIter         100;
+    }
+
+    "(A2|A2Final|B2|B2Final|T|TFinal)"
+    {
+        solver          GAMG;
+        tolerance       1e-8;
+        relTol          0.0;
+        smoother        symGaussSeidel;
+        nPreSweeps      1;
+        nPostSweeps     1;
+        nFinestSweeps   1;
+        cacheAgglomeration true;
+        nCellsInCoarsestLevel 10;
+        agglomerator    faceAreaPair;
+        mergeLevels     1;
+        maxIter         10;
+    }
+
+    ".*(rho|rhoFinal)"
+    {
+        solver          diagonal;
+    }
+/*
+    "(p_rgh|p_rghFinal)"
+    {
+        solver          GAMG;
+        tolerance       1e-10;
+        relTol          0;
+        smoother        DIC;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+        cacheAgglomeration true;
+        nCellsInCoarsestLevel 10;
+        agglomerator    faceAreaPair;
+        mergeLevels     1;
+    }
+*/
+    "(alpha.phase1|alpha.phase1Final)"
+    {
+	cAlpha 1.0;
+        nAlphaSubCycles 1;
+        nAlphaCorr      1;
+    }
+
+    "(p_rgh|p_rghFinal)"
+    {
+        solver          PCG;
+        preconditioner
+        {
+            preconditioner  GAMG;
+            tolerance       1e-07;
+            relTol          0;
+            nVcycles        2;
+            smoother        DICGaussSeidel;
+            nPreSweeps      2;
+            nPostSweeps     2;
+            nFinestSweeps   2;
+            cacheAgglomeration true;
+            nCellsInCoarsestLevel 10;
+            agglomerator    faceAreaPair;
+            mergeLevels     1;
+        }
+        tolerance       1e-10;
+        relTol          0;
+        maxIter         20;
+    }
+
+/*
+    "(U|UFinal)"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-06;
+        relTol          0;
+        nSweeps         1;
+    }
+
+    "(A2|A2Final|T|TFinal|alpha.phase1|alpha.phase1Final)"
+    {
+        solver          GAMG;
+        tolerance       1e-8;
+        relTol          0.1;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        nFinestSweeps   2;
+        cacheAgglomeration true;
+        nCellsInCoarsestLevel 10;
+        agglomerator    faceAreaPair;
+        mergeLevels     1;
+
+	// MULES settings for alpha1
+//      maxIter         20;
+//	nLimiterIter	5;
+//	maxUnboundedness 1;
+//	CoCoeff 0.2;
+	cAlpha 1.0;
+        nAlphaSubCycles 1;
+        nAlphaCorr      1;
+    }
+
+    "(A2Final|T|k|B|nuTilda).*"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0;
+    }
+*/
+}
+
+PIMPLE
+{
+    momentumPredictor no;
+    transonic       no;
+    nOuterCorrectors 1;
+    nCorrectors     1;
+    nNonOrthogonalCorrectors 2;
+}
+
+
+// ************************************************************************* //

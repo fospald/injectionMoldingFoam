@@ -1,0 +1,146 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      c;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.1;
+
+boundaryField
+{
+/*
+    "(walls.*)"
+    {
+        type            calculated;
+        value           uniform 1;
+    }
+*/
+
+    "(walls.*)"
+    {
+        type            codedMixed;
+
+        refValue        uniform 0.1;
+        refGradient     uniform 0;
+        valueFraction   uniform 1;
+
+        redirectType    cBC;
+
+        code
+        #{
+		const dictionary& fiberProperties = db().lookupObject<IOdictionary>("fiberProperties");
+
+		scalar FiberVolumeFraction(
+			readScalar(fiberProperties.lookup("VolumeFraction"))/100.0
+		);  
+
+		const fvPatchField<scalar>& injectionPointMask =
+			patch().lookupPatchField<volScalarField, scalar>("injectionPointMask");
+
+		this->refValue() = FiberVolumeFraction;
+		this->refGrad() = 0.0;
+		this->valueFraction() = 1;
+		//this->valueFraction() = injectionPointMask;
+
+		return;
+
+		const fvPatchField<scalar>& gammab =
+			patch().lookupPatchField<volScalarField, scalar>("magnitudeD");
+		const fvPatchField<scalar>& phib =
+			patch().lookupPatchField<volScalarField, scalar>("c");
+		const Foam::scalarField& d = patch().deltaCoeffs();
+
+		// Extract the dictionary from the database
+		scalar Ae(
+			fiberProperties.lookupOrDefault<scalar>("FiberAe", 0.0)
+		);  // effective collision radius
+
+		scalar Kd(
+			fiberProperties.lookupOrDefault<scalar>("FiberKd", 0.0)
+		);  // diffusion constant for fiber concentration
+
+		scalar Kc(
+			fiberProperties.lookupOrDefault<scalar>("FiberKc", 0.0)
+		);  // migration due to gradient in fiber collision rate
+		scalar Keta(
+			fiberProperties.lookupOrDefault<scalar>("FiberKeta", 0.0)
+		);  // fiber migration due to viscosity gradient
+
+
+		const volScalarField& mu1c = db().lookupObject<volScalarField>("mu1c");
+		const volScalarField& magnitudeD = db().lookupObject<volScalarField>("magnitudeD");
+		dimensionedScalar small("small", dimensionSet(0, 0, -1, 0, 0, 0, 0), SMALL);
+		volScalarField etar = 0.5*mu1c*(magnitudeD + small);        // TODO: viscous energy does not consider anisotropy
+		dimensionedScalar dim_etar("dim_etar", etar.dimensions(), 1.0); // dimensionSet(1, -1, -3, 0, 0, 0, 0), 1.0);
+
+		tmp<volScalarField> logEtar = log(SMALL+etar/dim_etar);
+		const fvPatchField<scalar>& logEtarb = logEtar->boundaryField()[patch().index()];
+
+		//volVectorField gradLogEtar = fvc::grad(log(SMALL+etar/dim_etar)).boundaryField().snGrad();
+		
+/*
+    fvScalarMatrix phiFiberEqn
+    (   
+        fvm::ddt(phiFiber)
+        + fvm::div(phi, phiFiber)
+        - fvm::laplacian(alpha1*FiberKd*magnitudeD, phiFiber)
+        + fvc::div(((FiberKc*FiberAe*FiberAe)*fvc::grad(magnitudeD*phiFiber) + (FiberKeta*FiberAe*FiberAe)*fvc::grad(log(SMALL+etar/dim_etar)))*phiFiber*alpha1)
+    );  
+
+*/
+
+#if 0
+		// -Kd*G + phib*(Kc*Ae*Ae*(gammab*G + gammab.snGrad()*phib) + Keta*Ae*Ae*gammab*phib*logEtarb.snGrad()) = 0
+		tmp< Field<scalar> > noOutflowGradPhi = (Kc*Ae*Ae*gammab.snGrad()*phib*phib + Keta*Ae*Ae*gammab*phib*phib*logEtarb.snGrad())/max(SMALL, Kd - Kc*Ae*Ae*phib*gammab);
+
+
+		this->refValue() = FiberVolumeFraction;
+		this->refGrad() = noOutflowGradPhi;
+		this->valueFraction() = injectionPointMask;
+
+#else
+		tmp< Field<scalar> > t1 = -(Kd*d) + (Ae*Ae*gammab.patchInternalField()*Kc*phib.patchInternalField())*d;
+		tmp< Field<scalar> > t2 = max(0.0, 2*(Ae*Ae*gammab*(Kc*d + Keta*logEtarb.snGrad()))) + SMALL;
+
+		tmp< Field<scalar> > noOutflowPhi = (t1() + sqrt(sqr(t1()) + 2*Kd*phib.patchInternalField()*t2()*d))/t2();
+
+		this->refValue() = FiberVolumeFraction*injectionPointMask + (1.0-injectionPointMask)*min(1.0, max(0.0, noOutflowPhi()));
+		this->refGrad() = 0.0;
+		this->valueFraction() = 1.0;
+#endif
+
+
+
+		Info << "Updating c BC" << endl;
+        #};
+
+        //codeInclude
+        //#{
+        //    #include "fvCFD.H"
+        //#};
+
+        //codeOptions
+        //#{
+        //    -I$(LIB_SRC)/finiteVolume/lnInclude
+        //#};
+    }
+
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

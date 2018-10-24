@@ -1,0 +1,88 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    "(walls.*)"
+    {
+        type            codedMixed;
+
+        refValue        uniform (0 0 0);
+        refGradient     uniform (0 0 0);
+        valueFraction   uniform 0;
+
+        redirectType    injectionVelocityBC;   // name of generated BC
+
+        code
+        #{
+		const fvPatchField<scalar>& alpha1 =
+			patch().lookupPatchField<volScalarField, scalar>("alpha.phase1");
+		const fvPatchField<scalar>& injectionPointMask =
+			patch().lookupPatchField<volScalarField, scalar>("injectionPointMask");
+		const fvPatchField<vector>& injectionVelocity =
+			patch().lookupPatchField<volVectorField, scalar>("injectionVelocities");
+
+		const fvPatchField<scalar>& p_rgh =
+			patch().lookupPatchField<volScalarField, scalar>("p_rgh");
+
+		const fvsPatchField<scalar>& phip =
+			patch().lookupPatchField<surfaceScalarField, scalar>("phi");
+		const vectorField n(patch().nf());
+		const Field<scalar>& magS = patch().magSf();
+
+		scalar alphaFillStop = 0.5;
+		tmp< Field<scalar> > alphaBoundary = max(0.0, min(1.0, max(alpha1, alpha1.patchInternalField())));
+		tmp< Field<scalar> > noOutflowMask = min(1.0, max(0.0, (alphaBoundary() - alphaFillStop) / (1.0 - alphaFillStop)));
+
+		scalar pRef = 1e5;
+
+		this->refValue() = injectionVelocity +
+			(this->patchInternalField() - n*((n & this->patchInternalField()) - phip/magS))*(1.0 - injectionPointMask)*
+			noOutflowMask()*
+			pos(p_rgh.patchInternalField() - pRef);
+//		this->refValue() = injectionVelocity;
+//		this->valueFraction() = max(injectionPointMask, noOutflowMask());
+
+		this->refGrad() = vector::zero;
+		this->valueFraction() = 1.0;
+
+		this->refValue() = injectionVelocity;
+
+		Info << "Updating U BC" << endl;
+        #};
+
+        //codeInclude
+        //#{
+        //    #include "fvCFD.H"
+        //#};
+
+        //codeOptions
+        //#{
+        //    -I$(LIB_SRC)/finiteVolume/lnInclude
+        //#};
+    }
+
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

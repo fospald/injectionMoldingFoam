@@ -1,0 +1,81 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      thermophysicalProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+/*
+               sutherland  hConst       incompressiblePerfectGas  specie  sensibleInternalEnergy  
+heRhoThermo  pureMixture                sutherland  hConst       perfectGas                specie  sensibleEnthalpy        
+heRhoThermo  pureMixture                sutherland  hConst       perfectGas                specie  sensibleInternalEnergy  
+heRhoThermo  pureMixture                sutherland  janaf        incompressiblePerfectGas  specie  sensibleEnthalpy        
+heRhoThermo  pureMixture                sutherland  janaf        incompressiblePerfectGas  specie  sensibleInternalEnergy  
+heRhoThermo  pureMixture                sutherland  janaf        perfectGas                specie  sensibleEnthalpy        
+heRhoThermo  pureMixture                sutherland  janaf        perfectGas                specie  sensibleInternalEnergy  
+heRhoThermo  reactingMixture            const       hConst       incompressiblePerfectGas  specie  sensibleEnthalpy        
+heRhoThermo  reactingMixture            const       hConst       incompressiblePerfectGas  specie  sensibleInternalEnergy  
+heRhoThermo  reactingMixture            const       hConst       perfectGas                specie  sensibleEnthalpy        
+heRhoThermo  reactingMixture            const       hConst       perfectGas                specie  sensibleInternalEnergy  
+heRhoThermo  reactingMixture            polynomial  hPolynomial  icoPolynomial             specie  sensibleEnthalpy        
+heRhoThermo  reactingMixture            polynomial  hPolynomial  icoPolynomial             specie  sensibleInternalEnergy  
+heRhoThermo  reactingMixture            sutherland  janaf        incompressiblePerfectGas  specie  sensibleEnthalpy        
+heRhoThermo  reactingMixture            sutherland  janaf        incompressiblePerfectGas  specie  sensibleInternalEnergy  
+heRhoThermo  reactingMixture            sutherland  janaf        perfectGas                specie  sensibleEnthalpy        
+heRhoThermo  reactingMixture            sutherland  janaf        perfectGas                specie  sensibleInternalEnergy  
+heRhoThermo  singleStepReactingMixture  sutherland  janaf        perfectGas                specie  sensibleEnthalpy        
+heRhoThermo  singleStepReactingMixture  sutherland  janaf        perfectGas                specie  sensibleInternalEnergy  
+heRhoThermo  veryInhomogeneousMixture   const       hConst       incompressiblePerfectGas  specie  sensibleEnthalpy        
+heRhoThermo  veryInhomogeneousMixture   const       hConst       perfectGas                specie  sensibleEnthalpy        
+heRhoThermo  veryInhomogeneousMixture   sutherland  janaf        incompressiblePerfectGas  specie  sensibleEnthalpy        
+heRhoThermo  veryInhomogeneousMixture   sutherland  janaf        perfectGas                specie  sensibleEnthalpy        
+*/
+
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+//    equationOfState incompressiblePerfectGas;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie
+    {
+        nMoles      1;
+        molWeight   28.9;
+    }
+    thermodynamics
+    {
+        Cp          1007;
+        Hf          0;
+    }
+    transport
+    {
+//        mu          1000;
+        mu          1.84e-5;
+        Pr          0.7;
+    }
+    equationOfState
+    {
+	pRef	1e5;
+    }
+}
+
+
+// ************************************************************************* //

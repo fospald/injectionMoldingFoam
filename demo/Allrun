@@ -1,0 +1,38 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
+injectionMoldingFoam
+foamToVTK
+
+
+exit
+
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Get application name
+application=`getApplication`
+
+# runApplication blockMesh
+cp 0/A2.org 0/A2
+cp 0/alpha.1.org 0/alpha.1
+cp 0/U.org 0/U
+cp 0/p_rgh.org 0/p_rgh
+cp 0/p.org 0/p
+cp 0/T.org 0/T
+cp 0/T.1.org 0/T.1
+cp 0/T.2.org 0/T.2
+
+Allclean
+decomposePar -fields
+# runApplication setFields
+# runApplication decomposePar
+# runParallel $application 4
+# runParallel $application 4
+mpirun -n 8 $application -parallel | tee app.log
+# $application
+# runApplication reconstructPar
+reconstructPar
+
+# ----------------------------------------------------------------- end-of-file

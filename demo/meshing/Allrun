@@ -1,0 +1,9 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
+blockMesh
+surfaceFeatureExtract
+snappyHexMesh
+renumberMesh -time 2
+
+exit

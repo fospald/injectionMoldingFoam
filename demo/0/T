@@ -1,0 +1,70 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 300;
+
+boundaryField
+{
+   "(walls.*)"
+   {
+        type            codedMixed;
+
+        refValue        uniform 0;
+        refGradient     uniform 0;
+        valueFraction   uniform 0;
+
+        redirectType    TempBC;
+
+        code
+        #{
+		const fvPatchField<scalar>& alpha1 =
+			patch().lookupPatchField<volScalarField, scalar>("alpha.phase1");
+		const fvPatchField<scalar>& injectionPointMask =
+			patch().lookupPatchField<volScalarField, scalar>("injectionPointMask");
+		const fvPatchField<scalar>& injectionTemperatures =
+			patch().lookupPatchField<volScalarField, scalar>("injectionTemperatures");
+
+		scalar alphaFillStop = 0.5;
+		tmp< Field<scalar> > alphaBoundary = max(0.0, min(1.0, max(alpha1, alpha1.patchInternalField())));
+		tmp< Field<scalar> > noOutflowMask = min(1.0, max(0.0, (alphaBoundary() - alphaFillStop) / (1.0 - alphaFillStop)));
+
+		this->refValue() = injectionTemperatures;
+		this->refGrad() = 0.0;
+		this->valueFraction() = pow(noOutflowMask(), 10.0);
+
+		Info << "Updating T BC" << endl;
+        #};
+
+        //codeInclude
+        //#{
+        //    #include "fvCFD.H"
+        //#};
+
+        //codeOptions
+        //#{
+        //    -I$(LIB_SRC)/finiteVolume/lnInclude
+        //#};
+    }
+
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

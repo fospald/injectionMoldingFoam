@@ -1,0 +1,68 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      alpha.phase1;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    "(walls.*)"
+    {
+        type            codedMixed;
+
+        refValue        uniform 0;
+        refGradient     uniform 0;
+        valueFraction   uniform 0;
+
+        redirectType    alpha1BC;
+
+        code
+        #{
+		const fvPatchField<scalar>& injectionPointMask =
+			patch().lookupPatchField<volScalarField, scalar>("injectionPointMask");
+
+#if 1
+		scalar corr = 0.5;
+#else
+		scalar corr = 1.0;
+#endif
+ 
+		this->refValue() = max(injectionPointMask, corr*min(1.0, this->patchInternalField()));
+		this->refGrad() = 0.0;
+		this->valueFraction() = 1.0;
+
+		Info << "Updating alpha1 BC" << endl;
+        #};
+
+        //codeInclude
+        //#{
+        //    #include "fvCFD.H"
+        //#};
+
+        //codeOptions
+        //#{
+        //    -I$(LIB_SRC)/finiteVolume/lnInclude
+        //#};
+    }
+
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

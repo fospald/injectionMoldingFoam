@@ -1,0 +1,79 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.2.2                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p_rgh;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [1 -1 -2 0 0 0 0];
+
+internalField   uniform 1e5;
+
+boundaryField
+{
+    "(walls.*)"
+    {
+        type            codedMixed;
+
+        refValue        uniform 1;
+        refGradient     uniform 0;
+        valueFraction   uniform 0;
+
+        redirectType    p_rghBC;
+
+        code
+        #{
+		const fvPatchField<scalar>& alpha1 =
+			patch().lookupPatchField<volScalarField, scalar>("alpha.phase1");
+
+		const fvPatchField<scalar>& injectionPointMask =
+			patch().lookupPatchField<volScalarField, scalar>("injectionPointMask");
+
+		const fvsPatchField<scalar>& phip =
+			patch().lookupPatchField<surfaceScalarField, scalar>("phi");
+		const fvPatchField<vector>& Up =
+			patch().lookupPatchField<volVectorField, scalar>("U");
+		const fvsPatchField<scalar>& phiHbyAp =
+			patch().lookupPatchField<surfaceScalarField, scalar>("phiHbyA");
+		const fvsPatchField<scalar>& Dpp =
+			patch().lookupPatchField<surfaceScalarField, scalar>("rAUf");
+
+		scalar alphaFillStop = 0.5;
+		tmp< Field<scalar> > alphaBoundary = max(0.0, min(1.0, max(alpha1, alpha1.patchInternalField())));
+		tmp< Field<scalar> > noOutflowMask = min(1.0, max(0.0, (alphaBoundary() - alphaFillStop) / (1.0 - alphaFillStop)));
+ 
+		this->refValue() = 1e5;
+		this->refGrad() = 0.0; // (phiHbyAp - (patch().Sf() & Up))/(patch().magSf()*Dpp);
+//		this->refGrad() = (phiHbyAp - phip)/(patch().magSf()*Dpp);
+		this->valueFraction() = 1.0 - max(injectionPointMask, noOutflowMask());
+
+		Info << "Updating p_rgh BC" << endl;
+        #};
+
+        //codeInclude
+        //#{
+        //    #include "fvCFD.H"
+        //#};
+
+        //codeOptions
+        //#{
+        //    -I$(LIB_SRC)/finiteVolume/lnInclude
+        //#};
+    }
+
+    defaultFaces
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //
