@@ -5,7 +5,7 @@
 
 # injectionMoldingFoam
 
-A solver for OpenFOAM for the simulation of injection molding. It is a modification of the interFoam solver distributed with OpenFOAM. The solver is not validated and generally not suitable for industrial use.
+A solver for OpenFOAM for the simulation of fiber reinforced injection molding. It is a modification of the interFoam solver distributed with OpenFOAM. The solver is not validated and generally not suitable for industrial use.
 
 
 ## Requirements
@@ -28,13 +28,16 @@ sh Allwmake
 
 ## Run Demo
 
-The demo consists of a simple 1x1x2 box. The points and distance field names are specified in `constant/fastMarchingDict`.
-For this demo a distance filed `d` is generated, which gives the shortest distance to the point `(0.0 0.2 0.5)`. The `maxDist` parameter can be used perform the distance calculation only up to distance `maxDist` (in order to save computation time). Larger distances are then set to `maxDist`.
+The demo consists of two joint boxes with two injection points.
+The injection parameters may be specified 
+
 ```
 cd demo
 sh Allrun
 ```
-This should run the solver, convert the results to VTK and open them in ParaView.
+This should run the solver, convert the results (20 snapshots) to VTK and open them in ParaView.
+You should add a clip filter on the scalar `alpha.phase1` with value `0.5` in order to visualize the injected material.
+Then use the time controls to step forward in time.
 
 
 ## Similar Projects
